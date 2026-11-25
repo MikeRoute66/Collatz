@@ -1,0 +1,1789 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Collatz Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #000;
+      --panel: #050505;
+      --panel-active: #160707;
+      --cell: #151b18;
+      --cell-border: #2b352f;
+      --text: #fff;
+      --muted: #c0c0c0;
+      --line: #552020;
+      --accent: #cc4b4b;
+      --accent-dark: #552020;
+      --blue: #8db9ff;
+      --green: #86efac;
+      --purple: #d6a7ff;
+      --warn: #f59e0b;
+      font-family: "Ubuntu", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    main {
+      width: min(92vw, 1180px);
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+
+    .page[hidden] {
+      display: none;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      background: rgba(5, 5, 5, 0.92);
+      padding: 14px;
+      box-shadow: inset 0 0 0 1px rgba(204, 75, 75, 0.08), 0 0 14px rgba(204, 75, 75, 0.12);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Press Start 2P", "Ubuntu", sans-serif;
+      font-size: clamp(1.25rem, 4vw, 2rem);
+      line-height: 1.35;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px var(--accent);
+    }
+
+    .lede {
+      margin: 8px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .status {
+      min-width: 170px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: rgba(5, 5, 5, 0.92);
+      color: var(--text);
+      font-family: "Press Start 2P", "Ubuntu", sans-serif;
+      font-size: 8px;
+      line-height: 1.5;
+      text-transform: uppercase;
+      text-shadow: 0 0 5px rgba(204, 75, 75, 0.35);
+      text-align: right;
+    }
+
+    .top-actions {
+      display: grid;
+      gap: 10px;
+      justify-items: end;
+    }
+
+    .view-toggle {
+      width: auto;
+      min-width: 132px;
+      min-height: 38px;
+      font-size: 0.86rem;
+    }
+
+    .tree-panel {
+      border: 1px solid var(--line);
+      background: rgba(5, 5, 5, 0.92);
+      box-shadow: inset 0 0 0 1px rgba(204, 75, 75, 0.08), 0 20px 70px rgba(0, 0, 0, 0.52);
+      padding: 16px;
+    }
+
+    .prime-list {
+      display: block;
+      overflow: auto;
+      border: 1px solid var(--line);
+      background: rgba(5, 5, 5, 0.92);
+      box-shadow: inset 0 0 0 1px rgba(204, 75, 75, 0.08), 0 20px 70px rgba(0, 0, 0, 0.52);
+      padding: 8px;
+    }
+
+    .prime-grid {
+      display: grid;
+      grid-auto-rows: minmax(38px, auto);
+      min-width: max-content;
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+    }
+
+    .prime-axis,
+    .prime-cell {
+      min-width: 68px;
+      background: #050505;
+      padding: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .prime-axis {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-family: "Press Start 2P", "Ubuntu", sans-serif;
+      font-size: 6px;
+      line-height: 1.35;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .prime-cell {
+      display: grid;
+      gap: 2px;
+      align-content: start;
+      background: #17201d;
+    }
+
+    .prime-card {
+      min-width: 0;
+      border: 1px solid var(--cell-border);
+      background: rgba(5, 5, 5, 0.68);
+      padding: 3px 4px;
+      text-align: center;
+    }
+
+    .prime-card strong,
+    .prime-card span {
+      display: block;
+      overflow-wrap: anywhere;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .prime-card strong {
+      color: var(--accent);
+      font-size: 0.74rem;
+      line-height: 1.1;
+      text-shadow: 0 0 6px rgba(204, 75, 75, 0.4);
+    }
+
+    .prime-card span {
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 0.62rem;
+    }
+
+    .prime-plot {
+      width: 100%;
+      height: min(68vh, 680px);
+      min-height: 420px;
+      display: none;
+      border: 1px solid var(--line);
+      background: #17201d;
+    }
+
+    .prime-list[data-mode="plot"] .prime-grid {
+      display: none;
+    }
+
+    .prime-list[data-mode="plot"] .prime-plot {
+      display: block;
+    }
+
+    .tree-viewport {
+      height: min(72vh, 720px);
+      min-height: 520px;
+      overflow: hidden;
+      overscroll-behavior: contain;
+      border: 1px solid var(--line);
+      background: #17201d;
+      touch-action: none;
+    }
+
+    .tree-controls {
+      display: grid;
+      grid-template-columns: minmax(180px, 260px) auto;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    #tree-canvas {
+      height: 100%;
+      min-height: 0;
+      border: 0;
+      cursor: grab;
+    }
+
+    #tree-canvas:active {
+      cursor: grabbing;
+    }
+
+    .tree-navigation {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+      gap: 8px 16px;
+      margin-bottom: 8px;
+    }
+
+    .tree-navigation input {
+      display: block;
+      height: 30px;
+      padding: 0;
+      accent-color: var(--accent);
+    }
+
+    .tree-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tree-controls .field {
+      margin-bottom: 0;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 18px;
+      margin-top: 0;
+      align-items: start;
+    }
+
+    .controls,
+    .results {
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: rgba(5, 5, 5, 0.92);
+      box-shadow: inset 0 0 0 1px rgba(204, 75, 75, 0.08), 0 20px 70px rgba(0, 0, 0, 0.52);
+    }
+
+    .controls {
+      padding: 18px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    input {
+      width: 100%;
+      height: 42px;
+      border: 1px solid var(--cell-border);
+      border-radius: 0;
+      padding: 0 12px;
+      color: var(--text);
+      background: var(--cell);
+      font: inherit;
+    }
+
+    input:focus {
+      outline: 2px solid rgba(204, 75, 75, 0.35);
+      border-color: var(--accent);
+    }
+
+    button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--accent-dark);
+      border-radius: 0;
+      padding: 0 14px;
+      background: #2b1010;
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: inset 0 0 0 1px rgba(204, 75, 75, 0.12);
+    }
+
+    button:hover {
+      background: #3a1515;
+      border-color: var(--accent);
+    }
+
+    .hint {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .results {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-bottom: 1px solid var(--line);
+      font-family: "Press Start 2P", "Ubuntu", sans-serif;
+      text-transform: uppercase;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 16px;
+      border-right: 1px solid var(--line);
+    }
+
+    .metric:last-child {
+      border-right: 0;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      min-height: 34px;
+      overflow-wrap: anywhere;
+      color: var(--text);
+      font-size: clamp(0.7rem, 1.6vw, 1rem);
+      line-height: 1.5;
+      text-shadow: 0 0 5px rgba(204, 75, 75, 0.35);
+    }
+
+    .chart-wrap {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .factor-grid {
+      height: 220px;
+      min-height: 120px;
+      max-height: 360px;
+      margin-bottom: 12px;
+    }
+
+    canvas {
+      width: 100%;
+      height: min(62vh, 620px);
+      min-height: 430px;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: #17201d;
+    }
+
+    #factor-grid {
+      height: 100%;
+      min-height: 0;
+    }
+
+    .sequence {
+      padding: 16px;
+    }
+
+    .sequence-output {
+      max-height: 160px;
+      overflow: auto;
+      margin: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: #17201d;
+      color: var(--green);
+      font: 0.9rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      padding: 16px;
+      color: var(--muted);
+    }
+
+    .warning {
+      color: var(--warn);
+    }
+
+    .tooltip {
+      position: fixed;
+      z-index: 20;
+      pointer-events: none;
+      max-width: min(260px, calc(100vw - 24px));
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: rgba(5, 5, 5, 0.96);
+      color: var(--text);
+      font: 12px/1.35 "Ubuntu", system-ui, sans-serif;
+      box-shadow: inset 0 0 0 1px rgba(204, 75, 75, 0.08), 0 0 14px rgba(204, 75, 75, 0.22);
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        width: min(100vw - 20px, 760px);
+        padding-top: 18px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+      }
+
+      .top-actions {
+        justify-items: stretch;
+        width: 100%;
+      }
+
+      .tree-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .tree-viewport {
+        height: 68vh;
+        min-height: 360px;
+      }
+
+      .status {
+        text-align: left;
+      }
+
+      .controls {
+        position: static;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric:nth-child(2) {
+        border-right: 0;
+      }
+
+      .metric:nth-child(-n + 2) {
+        border-bottom: 1px solid var(--line);
+      }
+
+      canvas {
+        height: 420px;
+        min-height: 320px;
+      }
+
+      .factor-grid {
+        height: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="tree-page" class="page">
+    <header>
+      <div>
+        <h1>Inverse Collatz</h1>
+        <p class="lede">Tree of predecessors rooted at 1. Each node points forward to its parent under the Collatz map.</p>
+      </div>
+      <div class="top-actions">
+        <button class="view-toggle" id="show-primes" type="button">Primes</button>
+        <button class="view-toggle" id="show-explorer" type="button">Explorer</button>
+        <div class="status" id="tree-status">Ready</div>
+      </div>
+    </header>
+
+    <section class="tree-panel" aria-label="Inverse Collatz tree">
+      <div class="tree-controls">
+        <div class="field">
+          <label for="tree-depth">Tree depth</label>
+          <input id="tree-depth" type="number" min="1" step="1" value="12" inputmode="numeric">
+        </div>
+        <div class="tree-actions">
+          <button id="draw-tree" type="button">Draw</button>
+          <button id="stop-tree" type="button" disabled>Stop</button>
+        </div>
+      </div>
+      <div class="tree-navigation">
+        <label>Horizontal position <input id="tree-horizontal" type="range" min="0" max="0" value="0"></label>
+        <label>Top depth <input id="tree-vertical" type="range" min="0" max="0" value="0"></label>
+        <label>Zoom <input id="tree-zoom" type="range" min="0" max="1000" value="1000"></label>
+        <button id="fit-tree" type="button">Fit Tree</button>
+      </div>
+      <div class="tree-viewport" id="tree-viewport">
+        <canvas id="tree-canvas" width="1000" height="700" tabindex="0"
+          aria-label="Inverse Collatz tree from one" aria-describedby="tree-help"></canvas>
+      </div>
+      <p id="tree-help" class="hint">Drag, scroll, or use the arrow keys to pan. Use Ctrl + scroll or pinch to zoom. Select Fit Tree to see the entire layout. Hover over a node for its full value.</p>
+    </section>
+  </main>
+
+  <main id="primes-page" class="page" hidden>
+    <header>
+      <div>
+        <h1>Primes</h1>
+        <p class="lede">Prime values in the order they appear in the inverse-Collatz tree, with prime index underneath.</p>
+      </div>
+      <div class="top-actions">
+        <button class="view-toggle" id="primes-show-tree" type="button">Tree</button>
+        <button class="view-toggle" id="primes-show-explorer" type="button">Explorer</button>
+        <div class="status" id="primes-status">Ready</div>
+      </div>
+    </header>
+    <section class="tree-panel" aria-label="Prime list controls">
+      <div class="tree-controls">
+        <div class="field">
+          <label for="prime-count">Prime count</label>
+          <input id="prime-count" type="number" min="1" step="1" value="50" inputmode="numeric">
+        </div>
+        <button id="draw-primes" type="button">Draw</button>
+        <button id="toggle-prime-mode" type="button">Plot</button>
+      </div>
+    </section>
+    <section class="prime-list" id="prime-list" data-mode="grid" aria-label="Primes in inverse Collatz tree order">
+      <canvas id="prime-plot" class="prime-plot" width="1000" height="680" aria-label="Prime layer and branch scatterplot"></canvas>
+    </section>
+  </main>
+
+  <main id="explorer-page" class="page" hidden>
+    <header>
+      <div>
+        <h1>Collatz Explorer</h1>
+        <p class="lede">Odd-only trajectories for the 3n + 1 map. Even values are collapsed out of the sequence.</p>
+      </div>
+      <div class="top-actions">
+        <button class="view-toggle" id="explorer-show-primes" type="button">Primes</button>
+        <button class="view-toggle" id="show-tree" type="button">Tree</button>
+        <div class="status" id="status">Ready</div>
+      </div>
+    </header>
+
+    <section class="layout" aria-label="Collatz controls and results">
+      <form class="controls" id="collatz-form">
+        <div class="field">
+          <label for="start">Starting integer</label>
+          <input id="start" name="start" type="number" min="1" step="1" value="27" inputmode="numeric">
+        </div>
+        <button type="submit">Run</button>
+        <p class="hint">If the start is even, it is divided by two until the first odd value. Each plotted step then jumps from one odd value to the next.</p>
+      </form>
+
+      <section class="results" aria-label="Trajectory results">
+        <div class="metrics">
+          <div class="metric">
+            <span>Start</span>
+            <strong id="metric-start">27</strong>
+          </div>
+          <div class="metric">
+            <span>Odd Jumps</span>
+            <strong id="metric-steps">41</strong>
+          </div>
+          <div class="metric">
+            <span>Peak</span>
+            <strong id="metric-peak">9232</strong>
+          </div>
+          <div class="metric">
+            <span>Odd Terms</span>
+            <strong id="metric-terms">42</strong>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="factor-grid" class="factor-grid" width="1000" height="220" aria-label="Prime factor array"></canvas>
+          <canvas id="chart" width="1000" height="420" aria-label="Trajectory chart"></canvas>
+        </div>
+        <div class="sequence">
+          <pre class="sequence-output" id="sequence-output"></pre>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div id="tooltip" class="tooltip" hidden></div>
+
+  <script>
+    const MAX_TRAJECTORY_TERMS = 20000;
+
+    const treePage = document.querySelector("#tree-page");
+    const primesPage = document.querySelector("#primes-page");
+    const explorerPage = document.querySelector("#explorer-page");
+    const showExplorer = document.querySelector("#show-explorer");
+    const showTree = document.querySelector("#show-tree");
+    const showPrimes = document.querySelector("#show-primes");
+    const primesShowTree = document.querySelector("#primes-show-tree");
+    const primesShowExplorer = document.querySelector("#primes-show-explorer");
+    const explorerShowPrimes = document.querySelector("#explorer-show-primes");
+    const primesStatus = document.querySelector("#primes-status");
+    const primeList = document.querySelector("#prime-list");
+    const primePlot = document.querySelector("#prime-plot");
+    const primePlotCtx = primePlot.getContext("2d");
+    const primeCountInput = document.querySelector("#prime-count");
+    const drawPrimesButton = document.querySelector("#draw-primes");
+    const togglePrimeModeButton = document.querySelector("#toggle-prime-mode");
+    const treeStatus = document.querySelector("#tree-status");
+    const treeDepthInput = document.querySelector("#tree-depth");
+    const drawTreeButton = document.querySelector("#draw-tree");
+    const treeCanvas = document.querySelector("#tree-canvas");
+    const treePanel = treeCanvas.parentElement;
+    const treeCtx = treeCanvas.getContext("2d");
+    const form = document.querySelector("#collatz-form");
+    const status = document.querySelector("#status");
+    const startInput = document.querySelector("#start");
+    const output = document.querySelector("#sequence-output");
+    const tooltip = document.querySelector("#tooltip");
+    const factorCanvas = document.querySelector("#factor-grid");
+    const factorCtx = factorCanvas.getContext("2d");
+    const canvas = document.querySelector("#chart");
+    const ctx = canvas.getContext("2d");
+    const CHART_PAD_LEFT = 58;
+    const CHART_PAD_RIGHT = 24;
+    const CHART_PAD_Y = 34;
+    const MAX_TRIAL_DIVISOR = 1000000n;
+    const treeHorizontal = document.querySelector("#tree-horizontal");
+    const treeVertical = document.querySelector("#tree-vertical");
+    const treeZoomInput = document.querySelector("#tree-zoom");
+    const stopTreeButton = document.querySelector("#stop-tree");
+    const TREE_ROW = 58;
+    const TREE_PADDING = 28;
+    const TREE_MAX_ZOOM = 3.5;
+    let treeZoom = 1;
+    let treeFitted = false;
+    let currentValues = [];
+    let currentSequenceValuations = [];
+    let chartHoverState = null;
+    let factorDots = [];
+    let treeBuild;
+    let treePaintPending = false;
+    let treeX = 0;
+    let treeY = 0;
+    const treePointers = new Map();
+    let primeViewMode = "grid";
+    let currentPrimePlotNodes = [];
+    let primePlotView = null;
+    let primePlotPoints = [];
+    const primeIndexCache = new Map([[2n, 1]]);
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function parseDepth() {
+      const depth = Number(treeDepthInput.value);
+      if (!Number.isSafeInteger(depth) || depth < 1) {
+        throw new Error("Depth must be positive");
+      }
+      return depth;
+    }
+
+    function parsePrimeCount() {
+      const count = Number(primeCountInput.value);
+      if (!Number.isInteger(count) || count < 1) {
+        throw new Error("Count must be positive");
+      }
+      return count;
+    }
+
+    function inverseChildren(n) {
+      const children = [n * 2n];
+      if (n > 1n && (n - 1n) % 3n === 0n) {
+        const oddParent = (n - 1n) / 3n;
+        if (oddParent > 1n && oddParent % 2n === 1n) {
+          children.push(oddParent);
+        }
+      }
+      return children.filter((value) => value % 6n !== 0n);
+    }
+
+    function isPrimeValue(value) {
+      if (value < 2n) {
+        return false;
+      }
+      if (value === 2n) {
+        return true;
+      }
+      if (value % 2n === 0n) {
+        return false;
+      }
+      for (let divisor = 3n; divisor * divisor <= value; divisor += 2n) {
+        if (divisor > MAX_TRIAL_DIVISOR) {
+          return false;
+        }
+        if (value % divisor === 0n) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function primeIndex(value) {
+      if (primeIndexCache.has(value)) {
+        return primeIndexCache.get(value);
+      }
+
+      let index = 0;
+      for (let candidate = 2n; candidate <= value; candidate += candidate === 2n ? 1n : 2n) {
+        if (isPrimeValue(candidate)) {
+          index += 1;
+          primeIndexCache.set(candidate, index);
+          if (candidate === value) {
+            return index;
+          }
+        }
+      }
+      return index;
+    }
+
+    function treeOrderedPrimes(targetCount) {
+      let level = [{ value: 1n, depth: 0, branchIndex: 0 }];
+      let nextBranchIndex = 1;
+      const primes = [];
+      let depth = 0;
+      while (primes.length < targetCount) {
+        const nextLevel = [];
+        for (const node of level) {
+          for (const value of inverseChildren(node.value)) {
+            nextLevel.push({
+              value,
+              depth: depth + 1,
+              branchIndex: value === node.value * 2n ? node.branchIndex : nextBranchIndex++
+            });
+          }
+        }
+        level = nextLevel;
+        depth += 1;
+        const layerPrimes = level.filter((node) => isPrimeValue(node.value));
+        layerPrimes.sort((a, b) => a.branchIndex - b.branchIndex);
+        for (const node of layerPrimes) {
+          primes.push(node);
+          if (primes.length === targetCount) {
+            break;
+          }
+        }
+      }
+      return { primes, depth };
+    }
+
+    function drawPrimePlot(primes) {
+      const { width, height } = resizeCanvasToDisplay(primePlot, primePlotCtx);
+      const maxDepth = Math.max(1, ...primes.map((node) => node.depth));
+      const maxBranch = Math.max(1, ...primes.map((node) => node.branchIndex));
+      if (!primePlotView) {
+        primePlotView = { minDepth: 0, maxDepth, minBranch: 0, maxBranch };
+      }
+      const left = 42;
+      const right = 18;
+      const top = 18;
+      const bottom = 34;
+      const plotWidth = Math.max(1, width - left - right);
+      const plotHeight = Math.max(1, height - top - bottom);
+      const depthSpan = Math.max(1, primePlotView.maxDepth - primePlotView.minDepth);
+      const branchSpan = Math.max(1, primePlotView.maxBranch - primePlotView.minBranch);
+      primePlotPoints = [];
+
+      primePlotCtx.clearRect(0, 0, width, height);
+      primePlotCtx.fillStyle = "#17201d";
+      primePlotCtx.fillRect(0, 0, width, height);
+
+      primePlotCtx.strokeStyle = "#2b352f";
+      primePlotCtx.lineWidth = 1;
+      const depthStep = Math.max(1, Math.ceil(depthSpan / 12));
+      for (let i = Math.ceil(primePlotView.minDepth); i <= primePlotView.maxDepth; i += depthStep) {
+        const x = left + plotWidth * (i - primePlotView.minDepth) / depthSpan;
+        primePlotCtx.beginPath();
+        primePlotCtx.moveTo(x, top);
+        primePlotCtx.lineTo(x, height - bottom);
+        primePlotCtx.stroke();
+      }
+
+      const branchStep = Math.max(1, Math.ceil(branchSpan / 12));
+      for (let i = Math.ceil(primePlotView.minBranch); i <= primePlotView.maxBranch; i += branchStep) {
+        const y = height - bottom - plotHeight * (i - primePlotView.minBranch) / branchSpan;
+        primePlotCtx.beginPath();
+        primePlotCtx.moveTo(left, y);
+        primePlotCtx.lineTo(width - right, y);
+        primePlotCtx.stroke();
+      }
+
+      primePlotCtx.fillStyle = "#c0c0c0";
+      primePlotCtx.font = "10px Ubuntu, system-ui, sans-serif";
+      primePlotCtx.textAlign = "center";
+      primePlotCtx.fillText("Layer", left + plotWidth / 2, height - 10);
+      primePlotCtx.save();
+      primePlotCtx.translate(12, top + plotHeight / 2);
+      primePlotCtx.rotate(-Math.PI / 2);
+      primePlotCtx.fillText("Branch", 0, 0);
+      primePlotCtx.restore();
+
+      primePlotCtx.fillStyle = "#cc4b4b";
+      primePlotCtx.shadowColor = "rgba(204, 75, 75, 0.7)";
+      primePlotCtx.shadowBlur = 8;
+      primes.forEach((node) => {
+        if (
+          node.depth < primePlotView.minDepth ||
+          node.depth > primePlotView.maxDepth ||
+          node.branchIndex < primePlotView.minBranch ||
+          node.branchIndex > primePlotView.maxBranch
+        ) {
+          return;
+        }
+        const x = left + plotWidth * (node.depth - primePlotView.minDepth) / depthSpan;
+        const y = height - bottom - plotHeight * (node.branchIndex - primePlotView.minBranch) / branchSpan;
+        primePlotPoints.push({ x, y, node });
+        primePlotCtx.beginPath();
+        primePlotCtx.arc(x, y, 4, 0, Math.PI * 2);
+        primePlotCtx.fill();
+      });
+      primePlotCtx.shadowBlur = 0;
+    }
+
+    function renderPrimesPage() {
+      let result;
+      try {
+        result = treeOrderedPrimes(parsePrimeCount());
+      } catch (error) {
+        primesStatus.textContent = error.message;
+        primesStatus.classList.add("warning");
+        primeList.querySelector(".prime-grid")?.remove();
+        return;
+      }
+
+      currentPrimePlotNodes = result.primes;
+      primePlotView = null;
+      const maxDepth = Math.max(0, ...result.primes.map((node) => node.depth));
+      const maxBranch = Math.max(0, ...result.primes.map((node) => node.branchIndex));
+      const cells = new Map();
+
+      result.primes
+        .slice()
+        .sort((a, b) => a.branchIndex - b.branchIndex || a.depth - b.depth || a.center - b.center)
+        .forEach((node) => {
+          const key = `${node.branchIndex}:${node.depth}`;
+          if (!cells.has(key)) {
+            cells.set(key, []);
+          }
+          cells.get(key).push(node);
+        });
+
+      const columns = maxDepth + 2;
+      const rows = ['<div class="prime-axis">Branch<br>Layer</div>'];
+      for (let depth = 0; depth <= maxDepth; depth += 1) {
+        rows.push(`<div class="prime-axis">${depth}</div>`);
+      }
+
+      for (let branch = 0; branch <= maxBranch; branch += 1) {
+        rows.push(`<div class="prime-axis">${branch}</div>`);
+        for (let depth = 0; depth <= maxDepth; depth += 1) {
+          const nodes = (cells.get(`${branch}:${depth}`) || [])
+            .sort((a, b) => a.center - b.center);
+          rows.push(`
+            <div class="prime-cell">
+              ${nodes.map((node) => `
+                <div class="prime-card">
+                  <strong>${node.value}</strong>
+                  <span>${primeIndex(node.value)}</span>
+                </div>
+              `).join("")}
+            </div>
+          `);
+        }
+      }
+
+      primeList.querySelector(".prime-grid")?.remove();
+      primeList.insertAdjacentHTML("afterbegin", `<div class="prime-grid" style="grid-template-columns: 54px repeat(${columns - 1}, minmax(68px, auto));">${rows.join("")}</div>`);
+      primeList.dataset.mode = primeViewMode;
+      togglePrimeModeButton.textContent = primeViewMode === "grid" ? "Plot" : "Grid";
+      drawPrimePlot(result.primes);
+      primesStatus.textContent = `${result.primes.length} primes depth ${result.depth}`;
+      primesStatus.classList.remove("warning");
+    }
+
+    function drawInverseTree() {
+      let target;
+      try {
+        target = parseDepth();
+      } catch (error) {
+        treeStatus.textContent = error.message;
+        treeStatus.classList.add("warning");
+        return;
+      }
+
+      if (treeBuild) {
+        cancelAnimationFrame(treeBuild.frame);
+      }
+      const build = treeBuild ??= {
+        levels: [[{ value: 1n }]],
+        totals: [1],
+        count: 1,
+        depth: 0,
+        parent: 0
+      };
+      build.target = target;
+      build.running = build.depth < target;
+      build.nextLayerAt = performance.now() + 80;
+      stopTreeButton.disabled = !build.running;
+      treeStatus.classList.remove("warning");
+      requestTreePaint();
+
+      function grow(now) {
+        if (now >= build.nextLayerAt) {
+          const parents = build.levels[build.depth];
+          const children = build.levels[build.depth + 1] ?? [];
+          build.levels[build.depth + 1] = children;
+          const deadline = performance.now() + 6;
+          do {
+            const batchEnd = Math.min(parents.length, build.parent + 128);
+            for (; build.parent < batchEnd; build.parent += 1) {
+              const parent = parents[build.parent];
+              const [double, odd] = inverseChildren(parent.value);
+              if (double !== undefined) {
+                parent.double = { value: double };
+                children.push(parent.double);
+              }
+              if (odd !== undefined) {
+                parent.odd = { value: odd, isOdd: true };
+                children.push(parent.odd);
+              }
+            }
+          } while (build.parent < parents.length && performance.now() < deadline);
+          if (build.parent === parents.length) {
+            build.count += children.length;
+            build.depth += 1;
+            build.totals.push(build.count);
+            build.parent = 0;
+            build.nextLayerAt = now + 80;
+          }
+          build.running = build.depth < target;
+          stopTreeButton.disabled = !build.running;
+          requestTreePaint();
+        }
+        if (build.running) {
+          build.frame = requestAnimationFrame(grow);
+        }
+      }
+
+      if (build.running) {
+        build.frame = requestAnimationFrame(grow);
+      }
+    }
+
+    function requestTreePaint() {
+      if (treePaintPending || treePage.hidden || !treeBuild) {
+        return;
+      }
+      treePaintPending = true;
+      requestAnimationFrame(() => {
+        treePaintPending = false;
+        if (!treePage.hidden) {
+          paintTree();
+        }
+      });
+    }
+
+    function firstAt(length, valueAt, target) {
+      let low = 0;
+      let high = length;
+      while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (valueAt(middle) < target) {
+          low = middle + 1;
+        } else {
+          high = middle;
+        }
+      }
+      return low;
+    }
+
+    function treeLayout() {
+      const { levels, target, running } = treeBuild;
+      const cached = treeBuild.layout;
+      if (running && cached?.depth === treeBuild.depth + 1 && cached.depth <= target) {
+        return cached;
+      }
+      const depth = Math.min(target, running ? treeBuild.depth : levels.length - 1);
+      const size = levels[depth].length;
+      if (treeBuild.layout?.depth === depth && treeBuild.layout.size === size) {
+        return treeBuild.layout;
+      }
+
+      for (let row = depth; row >= 0; row -= 1) {
+        for (const node of levels[row]) {
+          node.span = row < depth ? (node.double?.span ?? 0) + (node.odd?.span ?? 0) || 1 : 1;
+        }
+      }
+
+      const rows = Array.from({ length: depth + 1 }, () => []);
+      const forks = Array.from({ length: depth + 1 }, () => []);
+      const root = levels[0][0];
+      const stack = [{ node: root, row: 0, left: 0, fromLeft: true }];
+      while (stack.length > 0) {
+        const { node, row, left, fromLeft } = stack.pop();
+        const right = left + node.span - 1;
+        node.column = fromLeft ? left : right;
+        rows[row].push(node);
+        if (row === depth || !node.double) {
+          continue;
+        }
+
+        // The doubling child keeps the parent's outside edge. The odd child
+        // starts on the opposite edge and both child blocks face inward.
+        const nextRow = row + 1;
+        const double = { node: node.double, row: nextRow,
+          left: fromLeft ? left : right - node.double.span + 1, fromLeft };
+        if (node.odd) {
+          const odd = { node: node.odd, row: nextRow,
+            left: fromLeft ? left + node.double.span : left, fromLeft: !fromLeft };
+          forks[nextRow].push({ left, right, parent: node.column });
+          stack.push(fromLeft ? odd : double, fromLeft ? double : odd);
+        } else {
+          stack.push(double);
+        }
+      }
+
+      treeBuild.layout = { depth, size, rows, forks, columns: root.span };
+      return treeBuild.layout;
+    }
+
+    function treeGeometry(width, height) {
+      const layout = treeLayout();
+      const { depth } = layout;
+      // A depth-d value is at most 2^d. Reserve room for every digit.
+      const column = Math.max(112, 24 + 8 * (Math.floor(depth * Math.LOG10E * Math.LN2) + 1));
+      const worldWidth = layout.columns * column;
+      const worldHeight = depth * TREE_ROW + 2 * TREE_PADDING;
+      const fit = Math.min(1, Math.max(1, width) / worldWidth, Math.max(1, height) / worldHeight);
+      return { layout, depth, column, worldWidth, fit };
+    }
+
+    function paintTree() {
+      const { width, height } = resizeCanvasToDisplay(treeCanvas, treeCtx);
+      const { totals, target, running } = treeBuild;
+      const { layout, depth, column, worldWidth, fit } = treeGeometry(width, height);
+      const count = totals[depth] ?? (totals[depth - 1] + layout.size);
+      treeZoom = treeFitted ? fit : clamp(treeZoom, fit, TREE_MAX_ZOOM);
+      const columnPixels = column * treeZoom;
+      const rowPixels = TREE_ROW * treeZoom;
+      const maxX = Math.max(0, Math.ceil(worldWidth * treeZoom - width));
+      const maxY = depth * rowPixels;
+      treeX = treeFitted ? 0 : clamp(treeX, 0, maxX);
+      treeY = treeFitted ? 0 : clamp(treeY, 0, maxY);
+      treeHorizontal.max = maxX;
+      treeHorizontal.value = Math.round(treeX);
+      treeHorizontal.disabled = maxX === 0;
+      treeVertical.max = depth;
+      treeVertical.value = Math.round(treeY / rowPixels);
+      treeVertical.disabled = maxY === 0 || treeFitted;
+      treeZoomInput.value = Math.round(1000 * Math.log(treeZoom / fit) / Math.log(TREE_MAX_ZOOM / fit));
+
+      const firstDepth = Math.floor(treeY / rowPixels);
+      const lastDepth = Math.min(depth, Math.ceil((treeY + height) / rowPixels));
+      const leftColumn = Math.floor(treeX / columnPixels);
+      const rightColumn = Math.ceil((treeX + width) / columnPixels);
+      const x = (index) => (index + 0.5) * columnPixels - treeX;
+      const y = (row) => row * rowPixels + TREE_PADDING * treeZoom - treeY;
+
+      function drawVisible(items, startKey, endKey, draw) {
+        const first = firstAt(items.length, (i) => items[i][endKey], leftColumn);
+        const end = firstAt(items.length, (i) => items[i][startKey], rightColumn);
+        // Sample subpixel detail in the full-tree overview.
+        const stride = Math.max(1, Math.ceil((end - first) / Math.max(1, width)));
+        for (let i = first; i < end; i += stride) {
+          draw(items[i]);
+        }
+        if (stride > 1 && (end - 1 - first) % stride !== 0) {
+          draw(items[end - 1]);
+        }
+      }
+
+      function line(x1, y1, x2, y2) {
+        treeCtx.moveTo(clamp(x1, 0, width), clamp(y1, 0, height));
+        treeCtx.lineTo(clamp(x2, 0, width), clamp(y2, 0, height));
+      }
+
+      treeCtx.clearRect(0, 0, width, height);
+      if (rowPixels >= 3) {
+        treeCtx.strokeStyle = "#995656";
+        treeCtx.lineWidth = 1;
+        treeCtx.beginPath();
+        for (let row = Math.max(1, firstDepth); row <= lastDepth; row += 1) {
+          const top = y(row - 1);
+          const bottom = y(row);
+          const middle = (top + bottom) / 2;
+          drawVisible(layout.rows[row], "column", "column", (node) => {
+            const px = x(node.column);
+            if (!node.isOdd && px >= 0 && px <= width) {
+              line(px, top, px, bottom);
+            }
+          });
+          drawVisible(layout.forks[row], "left", "right", (fork) => {
+            const left = x(fork.left);
+            const right = x(fork.right);
+            if (middle >= 0 && middle <= height && right >= 0 && left <= width) {
+              line(left, middle, right, middle);
+            }
+            const oddX = fork.parent === fork.left ? right : left;
+            if (oddX >= 0 && oddX <= width) {
+              line(oddX, middle, oddX, bottom);
+            }
+          });
+        }
+        treeCtx.stroke();
+      }
+
+      const showLabels = treeZoom >= 1;
+      treeCtx.font = "12px ui-monospace, Consolas, monospace";
+      treeCtx.textAlign = "center";
+      treeCtx.textBaseline = "middle";
+      for (let row = firstDepth; row <= lastDepth; row += 1) {
+        const py = y(row);
+        drawVisible(layout.rows[row], "column", "column", (node) => {
+          const px = x(node.column);
+          if (columnPixels >= 12) {
+            node.prime ??= node.value <= 100000000n && isPrimeValue(node.value);
+          }
+          treeCtx.fillStyle = row === 0 ? "#f8fafc" : node.prime ? "#e86c6c" : "#8db9ff";
+          treeCtx.beginPath();
+          treeCtx.arc(px, py, clamp(6 * treeZoom, 0.55, 12), 0, Math.PI * 2);
+          treeCtx.fill();
+          if (showLabels) {
+            treeCtx.fillStyle = "#fff";
+            treeCtx.fillText(String(node.value), px, py - 18);
+          }
+        });
+      }
+
+      const progress = running ? `Drawing ${depth}/${target}`
+        : treeBuild.depth < target ? `Stopped at depth ${depth}` : `Depth ${target}`;
+      treeStatus.textContent = `${progress} ? ${count.toLocaleString()} nodes`;
+    }
+
+    function zoomTree(nextZoom, x, y) {
+      const { fit } = treeGeometry(treeCanvas.clientWidth, treeCanvas.clientHeight);
+      const zoom = clamp(nextZoom, fit, TREE_MAX_ZOOM);
+      const ratio = zoom / treeZoom;
+      treeFitted = zoom === fit;
+      treeX = (treeX + x) * ratio - x;
+      treeY = (treeY + y) * ratio - y;
+      treeZoom = zoom;
+      requestTreePaint();
+    }
+
+    function showPage(page) {
+      treePage.hidden = page !== "tree";
+      primesPage.hidden = page !== "primes";
+      explorerPage.hidden = page !== "explorer";
+
+      if (page === "tree") {
+        requestTreePaint();
+      } else if (page === "primes") {
+        renderPrimesPage();
+      } else {
+        run();
+      }
+    }
+
+    function parsePositiveInteger(input) {
+      const value = input.value.trim();
+      if (!/^[1-9]\d*$/.test(value)) {
+        throw new Error(`${input.labels[0].textContent} must be a positive integer.`);
+      }
+      return BigInt(value);
+    }
+
+    function stripEvenFactors(n) {
+      while (n % 2n === 0n) {
+        n /= 2n;
+      }
+      return n;
+    }
+
+    function oddCollatzStep(n) {
+      return stripEvenFactors(3n * n + 1n);
+    }
+
+    function oddTrajectory(start) {
+      const values = [];
+      let n = stripEvenFactors(start);
+      values.push(n);
+      while (n !== 1n) {
+        n = oddCollatzStep(n);
+        values.push(n);
+        if (values.length > MAX_TRAJECTORY_TERMS) {
+          throw new Error(`Odd trajectory exceeded ${MAX_TRAJECTORY_TERMS.toLocaleString()} terms.`);
+        }
+      }
+      return values;
+    }
+
+    function toChartNumbers(values) {
+      const maximum = values.reduce((largest, value) => value > largest ? value : largest, 1n);
+      const maxNumber = Number(maximum);
+      if (Number.isSafeInteger(maxNumber)) {
+        return values.map(Number);
+      }
+      return values.map((value) => Number(value.toString().length));
+    }
+
+    function toScaledNumbers(values) {
+      if (values.length === 0) {
+        return [];
+      }
+      const maximum = values.reduce((largest, value) => value > largest ? value : largest, values[0]);
+      const maxNumber = Number(maximum);
+      if (Number.isSafeInteger(maxNumber)) {
+        return values.map(Number);
+      }
+      return values.map((value) => Number(value.toString().length));
+    }
+
+    function resizeCanvasToDisplay(canvasElement, context) {
+      const rect = canvasElement.getBoundingClientRect();
+      const scale = window.devicePixelRatio || 1;
+      const width = Math.max(1, Math.round(rect.width * scale));
+      const height = Math.max(1, Math.round(rect.height * scale));
+      if (canvasElement.width !== width || canvasElement.height !== height) {
+        canvasElement.width = width;
+        canvasElement.height = height;
+      }
+      context.setTransform(scale, 0, 0, scale, 0, 0);
+      return { width: rect.width, height: rect.height };
+    }
+
+    function distinctPrimeFactors(value) {
+      let n = value;
+      const factors = [];
+      if (n < 2n) {
+        return { factors, complete: true };
+      }
+
+      for (let divisor = 3n; divisor * divisor <= n; divisor += 2n) {
+        if (divisor > MAX_TRIAL_DIVISOR) {
+          return { factors, complete: false };
+        }
+        if (n % divisor === 0n) {
+          factors.push(divisor);
+          while (n % divisor === 0n) {
+            n /= divisor;
+          }
+        }
+      }
+
+      if (n > 1n) {
+        factors.push(n);
+      }
+      return { factors, complete: true };
+    }
+
+    function factorProfile(values) {
+      const factorsByColumn = [];
+      const factorCounts = [];
+      const greatestPrimeFactors = [];
+      const rowMap = new Map();
+      let complete = true;
+
+      values.forEach((value) => {
+        const result = distinctPrimeFactors(value);
+        complete = complete && result.complete;
+        factorsByColumn.push(result.factors);
+        factorCounts.push(result.factors.length);
+        greatestPrimeFactors.push(result.factors.reduce((largest, factor) => factor > largest ? factor : largest, 1n));
+        result.factors.forEach((factor) => rowMap.set(factor.toString(), factor));
+      });
+
+      const primes = Array.from(rowMap.values()).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+      return { primes, factorsByColumn, factorCounts, greatestPrimeFactors, complete };
+    }
+
+    function twoAdicValuation(value) {
+      let count = 0;
+      while (value > 0n && value % 2n === 0n) {
+        value /= 2n;
+        count += 1;
+      }
+      return count;
+    }
+
+    function primeHeatProfile(prime) {
+      const plus = twoAdicValuation(prime + 1n);
+      const minus = twoAdicValuation(prime - 1n);
+      return { plus, minus, total: plus + minus };
+    }
+
+    function factorHeatStyle(prime, maxHeat) {
+      const profile = primeHeatProfile(prime);
+      const heatValue = profile.total;
+      const heat = maxHeat <= 1 ? 0 : (heatValue - 1) / (maxHeat - 1);
+      const hue = 145 - heat * 145;
+      const saturation = 80 + heat * 12;
+      const lightness = 66 - heat * 10;
+      return {
+        fill: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+        glow: `hsla(${hue}, ${saturation}%, ${lightness}%, ${0.5 + heat * 0.22})`,
+        label: `[${profile.plus}, ${profile.minus}]`
+      };
+    }
+
+    function drawFactorGrid(values) {
+      const { primes, factorsByColumn, factorCounts, greatestPrimeFactors, complete } = factorProfile(values);
+      const targetHeight = Math.min(360, Math.max(120, primes.length * 18 + 34));
+      factorCanvas.style.height = `${targetHeight}px`;
+      const { width, height } = resizeCanvasToDisplay(factorCanvas, factorCtx);
+      const left = CHART_PAD_LEFT;
+      const right = CHART_PAD_RIGHT;
+      const top = 18;
+      const bottom = 12;
+      const plotWidth = Math.max(1, width - left - right);
+      const plotHeight = Math.max(1, height - top - bottom);
+      const spanX = Math.max(1, values.length - 1);
+      const rowCount = Math.max(1, primes.length);
+      const rowHeight = plotHeight / rowCount;
+      const boxSize = Math.max(3, Math.min(14, rowHeight * 0.62, plotWidth / Math.max(1, values.length) * 0.72));
+      factorDots = [];
+
+      factorCtx.clearRect(0, 0, width, height);
+      factorCtx.fillStyle = "#17201d";
+      factorCtx.fillRect(0, 0, width, height);
+
+      factorCtx.strokeStyle = "#2b352f";
+      factorCtx.lineWidth = 1;
+      factorCtx.font = "10px Ubuntu, system-ui, sans-serif";
+      factorCtx.textAlign = "right";
+      factorCtx.textBaseline = "middle";
+
+      primes.forEach((prime, rowIndex) => {
+        const y = top + rowHeight * (rowIndex + 0.5);
+        factorCtx.fillStyle = "#c0c0c0";
+        factorCtx.fillText(prime.toString(), left - 10, y);
+        factorCtx.beginPath();
+        factorCtx.moveTo(left, y);
+        factorCtx.lineTo(width - right, y);
+        factorCtx.stroke();
+      });
+
+      const primeToRow = new Map(primes.map((prime, index) => [prime.toString(), index]));
+      const maxHeat = Math.max(1, ...primes.map((prime) => primeHeatProfile(prime).total));
+      factorCtx.shadowBlur = 8;
+      factorsByColumn.forEach((factors, columnIndex) => {
+        const x = left + plotWidth * columnIndex / spanX;
+        factors.forEach((factor) => {
+          const rowIndex = primeToRow.get(factor.toString());
+          const y = top + rowHeight * (rowIndex + 0.5);
+          const style = factorHeatStyle(factor, maxHeat);
+          factorCtx.fillStyle = style.fill;
+          factorCtx.shadowColor = style.glow;
+          factorCtx.fillRect(x - boxSize / 2, y - boxSize / 2, boxSize, boxSize);
+          factorDots.push({
+            left: x - boxSize / 2,
+            right: x + boxSize / 2,
+            top: y - boxSize / 2,
+            bottom: y + boxSize / 2,
+            label: style.label
+          });
+        });
+      });
+      factorCtx.shadowBlur = 0;
+
+      if (primes.length === 0) {
+        factorCtx.fillStyle = "#c0c0c0";
+        factorCtx.textAlign = "center";
+        factorCtx.fillText("1 has no prime factors", width / 2, height / 2);
+      }
+
+      return { factorsComplete: complete, factorCounts, greatestPrimeFactors };
+    }
+
+    function drawChart(values, sequenceValuations, greatestPrimeFactors) {
+      const { width, height } = resizeCanvasToDisplay(canvas, ctx);
+      const left = CHART_PAD_LEFT;
+      const right = CHART_PAD_RIGHT;
+      const top = CHART_PAD_Y;
+      const bottom = CHART_PAD_Y;
+      const chartValues = toChartNumbers(values);
+      const maxY = Math.max(...chartValues);
+      const minY = Math.min(...chartValues);
+      const spanY = Math.max(1, maxY - minY);
+      const spanX = Math.max(1, chartValues.length - 1);
+      const plotWidth = Math.max(1, width - left - right);
+      const plotHeight = Math.max(1, height - top - bottom);
+      chartHoverState = { left, right, plotWidth, spanX };
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#17201d";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.strokeStyle = "#2b352f";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i += 1) {
+        const y = top + (plotHeight * i / 4);
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(width - right, y);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = "#8db9ff";
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = "rgba(141, 185, 255, 0.45)";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      chartValues.forEach((value, index) => {
+        const x = left + (plotWidth * index / spanX);
+        const y = height - bottom - (plotHeight * (value - minY) / spanY);
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      const maxSequenceValuation = Math.max(1, ...sequenceValuations);
+      ctx.strokeStyle = "#86efac";
+      ctx.lineWidth = 2;
+      ctx.shadowColor = "rgba(134, 239, 172, 0.55)";
+      ctx.shadowBlur = 8;
+      const visibleSequenceValuations = sequenceValuations
+        .map((count, index) => ({ count, index }))
+        .filter((point) => point.count !== 1);
+      ctx.beginPath();
+      visibleSequenceValuations.forEach((point, visibleIndex) => {
+        const x = left + (plotWidth * point.index / spanX);
+        const y = height - bottom - (plotHeight * point.count / maxSequenceValuation);
+        if (visibleIndex === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      const greatestPrimeValues = toScaledNumbers(greatestPrimeFactors);
+      const maxGreatestPrime = Math.max(1, ...greatestPrimeValues);
+      ctx.strokeStyle = "#d6a7ff";
+      ctx.lineWidth = 2;
+      ctx.shadowColor = "rgba(214, 167, 255, 0.6)";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      greatestPrimeValues.forEach((value, index) => {
+        const x = left + (plotWidth * index / spanX);
+        const y = height - bottom - (plotHeight * value / maxGreatestPrime);
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      const peakValue = Math.max(...chartValues);
+      const peakIndex = chartValues.indexOf(peakValue);
+      const peakX = left + (plotWidth * peakIndex / spanX);
+      const peakY = height - bottom - (plotHeight * (peakValue - minY) / spanY);
+      ctx.fillStyle = "#cc4b4b";
+      ctx.shadowColor = "rgba(204, 75, 75, 0.7)";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(peakX, peakY, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function run() {
+      const start = parsePositiveInteger(startInput);
+      const values = oddTrajectory(start);
+      const peak = values.reduce((largest, value) => value > largest ? value : largest, 1n);
+      currentValues = values;
+
+      document.querySelector("#metric-start").textContent = start.toString();
+      document.querySelector("#metric-steps").textContent = String(values.length - 1);
+      document.querySelector("#metric-peak").textContent = peak.toString();
+      document.querySelector("#metric-terms").textContent = String(values.length);
+      output.textContent = values.join(" -> ");
+      const factorResult = drawFactorGrid(values);
+      currentSequenceValuations = values.map((value) => twoAdicValuation(value + 1n));
+      drawChart(values, currentSequenceValuations, factorResult.greatestPrimeFactors);
+
+      if (!factorResult.factorsComplete) {
+        status.textContent = "Large factor skipped";
+      } else {
+        status.textContent = start % 2n === 0n ? "Even start compressed" : "Ready";
+      }
+      status.classList.toggle("warning", !factorResult.factorsComplete || start % 2n === 0n);
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      status.textContent = "Running";
+      status.classList.remove("warning");
+      window.setTimeout(() => {
+        try {
+          run();
+        } catch (error) {
+          status.textContent = error.message;
+          status.classList.add("warning");
+        }
+      }, 0);
+    });
+
+    function showTooltip(text, event) {
+      tooltip.textContent = text;
+      tooltip.hidden = false;
+      const gap = 14;
+      const rect = tooltip.getBoundingClientRect();
+      let left = event.clientX + gap;
+      let top = event.clientY + gap;
+      if (left + rect.width > window.innerWidth - 8) {
+        left = event.clientX - rect.width - gap;
+      }
+      if (top + rect.height > window.innerHeight - 8) {
+        top = event.clientY - rect.height - gap;
+      }
+      tooltip.style.left = `${Math.max(8, left)}px`;
+      tooltip.style.top = `${Math.max(8, top)}px`;
+    }
+
+    function hideTooltip() {
+      tooltip.hidden = true;
+    }
+
+    function canvasPoint(event, canvasElement) {
+      const rect = canvasElement.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    canvas.addEventListener("mousemove", (event) => {
+      if (!chartHoverState || currentValues.length === 0) {
+        hideTooltip();
+        return;
+      }
+
+      const point = canvasPoint(event, canvas);
+      const index = Math.max(0, Math.min(
+        currentValues.length - 1,
+        Math.round((point.x - chartHoverState.left) / chartHoverState.plotWidth * chartHoverState.spanX)
+      ));
+      showTooltip(`${currentValues[index]} (v2(n+1) = ${currentSequenceValuations[index]})`, event);
+    });
+
+    canvas.addEventListener("mouseleave", hideTooltip);
+
+    factorCanvas.addEventListener("mousemove", (event) => {
+      const point = canvasPoint(event, factorCanvas);
+      const dot = factorDots.find((candidate) => (
+        point.x >= candidate.left &&
+        point.x <= candidate.right &&
+        point.y >= candidate.top &&
+        point.y <= candidate.bottom
+      ));
+
+      if (dot) {
+        showTooltip(dot.label, event);
+      } else {
+        hideTooltip();
+      }
+    });
+
+    factorCanvas.addEventListener("mouseleave", hideTooltip);
+
+    drawTreeButton.addEventListener("click", drawInverseTree);
+    stopTreeButton.addEventListener("click", () => {
+      cancelAnimationFrame(treeBuild.frame);
+      treeBuild.running = false;
+      stopTreeButton.disabled = true;
+      requestTreePaint();
+    });
+    drawPrimesButton.addEventListener("click", renderPrimesPage);
+    togglePrimeModeButton.addEventListener("click", () => {
+      primeViewMode = primeViewMode === "grid" ? "plot" : "grid";
+      renderPrimesPage();
+    });
+
+    primePlot.addEventListener("wheel", (event) => {
+      if (primeViewMode !== "plot" || !primePlotView || currentPrimePlotNodes.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      const rect = primePlot.getBoundingClientRect();
+      const left = 42;
+      const right = 18;
+      const top = 18;
+      const bottom = 34;
+      const plotWidth = Math.max(1, rect.width - left - right);
+      const plotHeight = Math.max(1, rect.height - top - bottom);
+      const cursorX = clamp((event.clientX - rect.left - left) / plotWidth, 0, 1);
+      const cursorY = clamp((rect.height - bottom - (event.clientY - rect.top)) / plotHeight, 0, 1);
+      const zoomFactor = Math.exp(event.deltaY * 0.0015);
+      const depthSpan = Math.max(1, primePlotView.maxDepth - primePlotView.minDepth);
+      const branchSpan = Math.max(1, primePlotView.maxBranch - primePlotView.minBranch);
+      const depthAnchor = primePlotView.minDepth + cursorX * depthSpan;
+      const branchAnchor = primePlotView.minBranch + cursorY * branchSpan;
+      const nextDepthSpan = clamp(depthSpan * zoomFactor, 1, Math.max(1, ...currentPrimePlotNodes.map((node) => node.depth)));
+      const nextBranchSpan = clamp(branchSpan * zoomFactor, 1, Math.max(1, ...currentPrimePlotNodes.map((node) => node.branchIndex)));
+
+      primePlotView = {
+        minDepth: Math.max(0, depthAnchor - cursorX * nextDepthSpan),
+        maxDepth: Math.max(0, depthAnchor - cursorX * nextDepthSpan) + nextDepthSpan,
+        minBranch: Math.max(0, branchAnchor - cursorY * nextBranchSpan),
+        maxBranch: Math.max(0, branchAnchor - cursorY * nextBranchSpan) + nextBranchSpan
+      };
+      drawPrimePlot(currentPrimePlotNodes);
+    }, { passive: false });
+
+    primePlot.addEventListener("mousemove", (event) => {
+      if (primeViewMode !== "plot" || primePlotPoints.length === 0) {
+        hideTooltip();
+        return;
+      }
+
+      const point = canvasPoint(event, primePlot);
+      const nearest = primePlotPoints.reduce((best, candidate) => {
+        const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
+        return distance < best.distance ? { candidate, distance } : best;
+      }, { candidate: null, distance: Infinity });
+
+      if (!nearest.candidate || nearest.distance > 28) {
+        hideTooltip();
+        return;
+      }
+
+      const node = nearest.candidate.node;
+      showTooltip(`${node.value} / ${primeIndex(node.value)}`, event);
+    });
+
+    primePlot.addEventListener("mouseleave", hideTooltip);
+
+    treeHorizontal.addEventListener("input", () => {
+      treeX = Number(treeHorizontal.value);
+      requestTreePaint();
+    });
+
+    treeVertical.addEventListener("input", () => {
+      treeY = Number(treeVertical.value) * TREE_ROW * treeZoom;
+      requestTreePaint();
+    });
+
+    treeZoomInput.addEventListener("input", () => {
+      const { fit } = treeGeometry(treeCanvas.clientWidth, treeCanvas.clientHeight);
+      const position = Number(treeZoomInput.value) / 1000;
+      const zoom = position === 1 ? TREE_MAX_ZOOM : fit * (TREE_MAX_ZOOM / fit) ** position;
+      zoomTree(zoom, treeCanvas.clientWidth / 2, treeCanvas.clientHeight / 2);
+    });
+
+    document.querySelector("#fit-tree").addEventListener("click", () => {
+      treeFitted = true;
+      requestTreePaint();
+    });
+
+    treePanel.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      hideTooltip();
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? treeCanvas.clientHeight : 1;
+      if (event.ctrlKey) {
+        const { x, y } = canvasPoint(event, treeCanvas);
+        zoomTree(treeZoom * Math.exp(-event.deltaY * unit * 0.0015), x, y);
+      } else {
+        treeX += (event.deltaX || (event.shiftKey ? event.deltaY : 0)) * unit;
+        treeY += (event.shiftKey ? 0 : event.deltaY) * unit;
+        requestTreePaint();
+      }
+    }, { passive: false });
+
+    treeCanvas.addEventListener("keydown", (event) => {
+      const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+      if (direction) {
+        event.preventDefault();
+        treeX += direction[0] * treeGeometry(treeCanvas.clientWidth, treeCanvas.clientHeight).column * treeZoom;
+        treeY += direction[1] * TREE_ROW * treeZoom;
+        requestTreePaint();
+      }
+    });
+
+    treeCanvas.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || treePointers.size >= 2) {
+        return;
+      }
+      hideTooltip();
+      treeCanvas.setPointerCapture(event.pointerId);
+      treePointers.set(event.pointerId, canvasPoint(event, treeCanvas));
+    });
+
+    treeCanvas.addEventListener("pointermove", (event) => {
+      const point = canvasPoint(event, treeCanvas);
+      const previous = treePointers.get(event.pointerId);
+      if (previous) {
+        treePointers.set(event.pointerId, point);
+        if (treePointers.size === 2) {
+          const other = [...treePointers.values()].find((candidate) => candidate !== point);
+          const distance = Math.hypot(previous.x - other.x, previous.y - other.y);
+          if (distance > 0) {
+            zoomTree(treeZoom * Math.hypot(point.x - other.x, point.y - other.y) / distance,
+              (previous.x + other.x) / 2, (previous.y + other.y) / 2);
+          }
+        }
+        treeX += (previous.x - point.x) / treePointers.size;
+        treeY += (previous.y - point.y) / treePointers.size;
+        requestTreePaint();
+        return;
+      }
+
+      const { layout, column } = treeGeometry(treeCanvas.clientWidth, treeCanvas.clientHeight);
+      const index = Math.floor((point.x + treeX) / (column * treeZoom));
+      const worldY = (point.y + treeY) / treeZoom;
+      const row = Math.round((worldY - TREE_PADDING) / TREE_ROW);
+      const nodes = layout.rows[row];
+      const node = nodes?.[firstAt(nodes.length, (i) => nodes[i].column, index)];
+      if (node?.column === index && Math.abs(worldY - TREE_PADDING - row * TREE_ROW) * treeZoom <= 24) {
+        showTooltip(String(node.value), event);
+      } else {
+        hideTooltip();
+      }
+    });
+
+    treeCanvas.addEventListener("lostpointercapture", (event) => treePointers.delete(event.pointerId));
+    treeCanvas.addEventListener("pointerleave", hideTooltip);
+
+    showExplorer.addEventListener("click", () => showPage("explorer"));
+    showTree.addEventListener("click", () => showPage("tree"));
+    showPrimes.addEventListener("click", () => showPage("primes"));
+    primesShowTree.addEventListener("click", () => showPage("tree"));
+    primesShowExplorer.addEventListener("click", () => showPage("explorer"));
+    explorerShowPrimes.addEventListener("click", () => showPage("primes"));
+
+    drawInverseTree();
+    window.addEventListener("resize", () => {
+      if (!treePage.hidden) {
+        requestTreePaint();
+      } else if (!primesPage.hidden) {
+        renderPrimesPage();
+      } else {
+        run();
+      }
+    });
+  </script>
+</body>
+</html>
